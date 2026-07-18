@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>قائمة الطلب - نموذج تجريبي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B4B43;
+    --ink-dark:#123832;
+    --paper:#FAF6EC;
+    --paper-card:#FFFFFF;
+    --brass:#C9A227;
+    --brass-dark:#A8841A;
+    --clay:#A23B3B;
+    --line:#E4DCC8;
+    --text:#2A2A24;
+    --muted:#7A7563;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--text);
+    font-family:'Tajawal',sans-serif;
+    min-height:100vh;
+    padding-bottom:110px;
+  }
+  .hero{
+    background:linear-gradient(180deg,var(--ink) 0%,var(--ink-dark) 100%);
+    color:var(--paper);
+    padding:36px 20px 44px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::after{
+    content:"";
+    position:absolute;
+    bottom:0;left:0;right:0;
+    height:18px;
+    background:repeating-linear-gradient(-45deg, var(--paper) 0 10px, transparent 10px 20px);
+  }
+  .hero .eyebrow{
+    font-size:13px;
+    letter-spacing:2px;
+    color:var(--brass);
+    font-weight:700;
+    margin-bottom:10px;
+  }
+  .hero h1{
+    font-family:'Amiri',serif;
+    font-size:34px;
+    font-weight:700;
+  }
+  .hero p{
+    margin-top:8px;
+    font-size:14px;
+    color:#D9E3DF;
+  }
+
+  .categories{
+    display:flex;
+    gap:10px;
+    overflow-x:auto;
+    padding:18px 16px 6px;
+    position:sticky;
+    top:0;
+    background:var(--paper);
+    z-index:10;
+    border-bottom:1px solid var(--line);
+  }
+  .cat-btn{
+    flex-shrink:0;
+    padding:8px 18px;
+    border-radius:999px;
+    border:1.5px solid var(--line);
+    background:var(--paper-card);
+    font-family:'Tajawal',sans-serif;
+    font-weight:700;
+    font-size:14px;
+    color:var(--muted);
+    cursor:pointer;
+    transition:all .2s;
+  }
+  .cat-btn.active{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+
+  .menu{
+    padding:18px 16px 10px;
+    max-width:520px;
+    margin:0 auto;
+  }
+  .section-title{
+    font-family:'Amiri',serif;
+    font-size:20px;
+    color:var(--ink);
+    margin:18px 0 12px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .section-title::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--line);
+  }
+
+  .item{
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    margin-bottom:10px;
+  }
+  .item-info h3{
+    font-size:16px;
+    font-weight:700;
+    margin-bottom:4px;
+  }
+  .item-info p{
+    font-size:12.5px;
+    color:var(--muted);
+    margin-bottom:6px;
+    line-height:1.5;
+  }
+  .price{
+    font-weight:800;
+    color:var(--clay);
+    font-size:14px;
+  }
+  .qty-control{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-shrink:0;
+  }
+  .qty-btn{
+    width:30px;height:30px;
+    border-radius:8px;
+    border:1.5px solid var(--ink);
+    background:var(--paper-card);
+    color:var(--ink);
+    font-size:16px;
+    font-weight:800;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .qty-btn:active{transform:scale(0.92);}
+  .qty-num{
+    min-width:18px;
+    text-align:center;
+    font-weight:800;
+    font-size:15px;
+  }
+
+  .checkout{
+    max-width:520px;
+    margin:22px auto 0;
+    padding:16px;
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    display:none;
+  }
+  .checkout.show{ display:block; }
+  .checkout h3{
+    font-family:'Amiri',serif;
+    font-size:18px;
+    color:var(--ink);
+    margin-bottom:12px;
+  }
+  .field{
+    margin-bottom:12px;
+  }
+  .field label{
+    display:block;
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--muted);
+    margin-bottom:5px;
+  }
+  .field input, .field textarea{
+    width:100%;
+    padding:10px 12px;
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    font-family:'Tajawal',sans-serif;
+    font-size:14px;
+    background:var(--paper);
+    color:var(--text);
+  }
+  .field input:focus, .field textarea:focus{
+    outline:none;
+    border-color:var(--ink);
+  }
+  .field textarea{ resize:none; min-height:56px; }
+
+  .cart-bar{
+    position:fixed;
+    bottom:0;left:0;right:0;
+    background:var(--ink-dark);
+    color:var(--paper);
+    padding:14px 18px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    box-shadow:0 -6px 24px rgba(0,0,0,.25);
+    z-index:20;
+  }
+  .cart-info{
+    font-size:13px;
+    color:#CFE0DC;
+  }
+  .cart-total{
+    font-family:'Amiri',serif;
+    font-size:20px;
+    font-weight:700;
+    color:var(--brass);
+  }
+  .send-btn{
+    background:#25D366;
+    color:#0B3D24;
+    border:none;
+    padding:12px 20px;
+    border-radius:12px;
+    font-weight:800;
+    font-size:14px;
+    font-family:'Tajawal',sans-serif;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    cursor:pointer;
+    transition:transform .15s;
+  }
+  .send-btn:active{transform:scale(0.96);}
+  .send-btn:disabled{
+    background:#5a5a52;
+    color:#a8a8a0;
+    cursor:not-allowed;
+  }
+
+  .badge{
+    position:absolute;
+    top:14px;left:16px;
+    background:var(--brass);
+    color:var(--ink-dark);
+    font-size:11px;
+    font-weight:800;
+    padding:5px 12px;
+    border-radius:999px;
+    letter-spacing:.5px;
+  }
+  .hero{position:relative;}
+
+  .note{
+    max-width:520px;
+    margin:22px auto 0;
+    padding:14px 16px;
+    background:#FFF9E9;
+    border:1px dashed var(--brass);
+    border-radius:12px;
+    font-size:12.5px;
+    color:#5c4d1a;
+    line-height:1.6;
+  }
+  .error-msg{
+    font-size:12px;
+    color:var(--clay);
+    margin-top:4px;
+    display:none;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <span class="badge">نموذج تجريبي</span>
+  <div class="eyebrow">قائمة الطلب الرقمية</div>
+  <h1>مطعم الشام</h1>
+  <p>اختر طلبك، وهو بيوصلنا مرتب على واتساب فوراً</p>
+</div>
+
+<div class="categories" id="categories"></div>
+<div class="menu" id="menu"></div>
+
+<div class="checkout" id="checkout">
+  <h3>معلومات التوصيل</h3>
+  <div class="field">
+    <label>الاسم</label>
+    <input type="text" id="custName" placeholder="اسمك الكامل">
+  </div>
+  <div class="field">
+    <label>رقم الهاتف</label>
+    <input type="tel" id="custPhone" placeholder="09xxxxxxxx">
+  </div>
+  <div class="field">
+    <label>العنوان</label>
+    <textarea id="custAddress" placeholder="المنطقة، الشارع، أقرب نقطة دالة"></textarea>
+  </div>
+  <div class="error-msg" id="errorMsg">فيك تعبي الاسم ورقم الهاتف والعنوان قبل ما ترسل الطلب.</div>
+</div>
+
+<div class="note">
+  💡 هاد نموذج توضيحي بس — القائمة والأسعار والاسم بتتغير حسب محلك بالضبط. جرب ضيف صنف لسلة الطلب، عبي معلوماتك، واضغط "إرسال الطلب" لتشوف شكل الرسالة يلي بتوصل جاهزة عالواتساب.
+</div>
+
+<div class="cart-bar">
+  <div>
+    <div class="cart-info" id="cartCount">السلة فاضية</div>
+    <div class="cart-total" id="cartTotal">٠ ل.س</div>
+  </div>
+  <button class="send-btn" id="sendBtn" disabled onclick="sendOrder()">
+    إرسال الطلب واتساب ✓
+  </button>
+</div>
+
+<script>
+const RESTAURANT_WHATSAPP = "963954573138"; // 0954573138 بصيغة دولية (سوريا 963 بدون الصفر الأول)
+
+const menuData = {
+  "المقبلات": [
+    {id:1, name:"حمص بطحينة", desc:"حمص، طحينة، زيت زيتون، صنوبر", price:15000},
+    {id:2, name:"متبل باذنجان", desc:"باذنجان مشوي، طحينة، رمان", price:14000},
+    {id:3, name:"فتوش", desc:"خضار طازة، خبز محمص، دبس رمان", price:18000},
+  ],
+  "الأطباق الرئيسية": [
+    {id:4, name:"شاورما دجاج", desc:"مع بطاطا وثومية وخبز صاج", price:30000},
+    {id:5, name:"كباب مشوي", desc:"طبق كباب مع أرز وسلطة", price:45000},
+    {id:6, name:"ورق عنب", desc:"محشي أرز ولحمة، صحن كامل", price:35000},
+  ],
+  "المشروبات": [
+    {id:7, name:"عصير رمان طازة", desc:"", price:8000},
+    {id:8, name:"شاي بالنعنع", desc:"", price:5000},
+  ]
+};
+
+let cart = {};
+
+function render(){
+  const catBar = document.getElementById('categories');
+  const menuEl = document.getElementById('menu');
+  catBar.innerHTML = '';
+  menuEl.innerHTML = '';
+
+  Object.keys(menuData).forEach((cat, i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn' + (i===0?' active':'');
+    btn.textContent = cat;
+    btn.onclick = ()=>{
+      document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('sec-'+i).scrollIntoView({behavior:'smooth', block:'start'});
+    };
+    catBar.appendChild(btn);
+  });
+
+  Object.entries(menuData).forEach(([cat, items], i)=>{
+    const title = document.createElement('div');
+    title.className = 'section-title';
+    title.id = 'sec-'+i;
+    title.textContent = cat;
+    menuEl.appendChild(title);
+
+    items.forEach(item=>{
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `
+        <div class="item-info">
+          <h3>${item.name}</h3>
+          ${item.desc ? `<p>${item.desc}</p>` : ''}
+          <span class="price">${item.price.toLocaleString('en-US')} ل.س</span>
+        </div>
+        <div class="qty-control">
+          <button class="qty-btn" onclick="changeQty(${item.id}, 1)">+</button>
+          <span class="qty-num" id="qty-${item.id}">${cart[item.id]||0}</span>
+          <button class="qty-btn" onclick="changeQty(${item.id}, -1)">−</button>
+        </div>
+      `;
+      menuEl.appendChild(div);
+    });
+  });
+}
+
+function allItems(){
+  return Object.values(menuData).flat();
+}
+
+function changeQty(id, delta){
+  const current = cart[id] || 0;
+  const next = Math.max(0, current + delta);
+  if(next === 0){ delete cart[id]; } else { cart[id] = next; }
+  document.getElementById('qty-'+id).textContent = cart[id] || 0;
+  updateCart();
+}
+
+function updateCart(){
+  const items = allItems();
+  let count = 0, total = 0;
+  Object.entries(cart).forEach(([id, qty])=>{
+    const item = items.find(x=>x.id == id);
+    count += qty;
+    total += item.price * qty;
+  });
+  document.getElementById('cartCount').textContent = count>0 ? `${count} صنف بالسلة` : 'السلة فاضية';
+  document.getElementById('cartTotal').textContent = total.toLocaleString('en-US') + ' ل.س';
+  document.getElementById('sendBtn').disabled = count === 0;
+
+  const checkoutEl = document.getElementById('checkout');
+  if(count > 0){ checkoutEl.classList.add('show'); } else { checkoutEl.classList.remove('show'); }
+}
+
+function sendOrder(){
+  const name = document.getElementById('custName').value.trim();
+  const phone = document.getElementById('custPhone').value.trim();
+  const address = document.getElementById('custAddress').value.trim();
+  const errorEl = document.getElementById('errorMsg');
+
+  if(!name || !phone || !address){
+    errorEl.style.display = 'block';
+    document.getElementById('checkout').scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  errorEl.style.display = 'none';
+
+  const items = allItems();
+  let lines = ['*طلب جديد* 🧾', ''];
+  let total = 0;
+  Object.entries(cart).forEach(([id, qty])=>{
+    const item = items.find(x=>x.id == id);
+    lines.push(`• ${item.name} × ${qty} — ${(item.price*qty).toLocaleString('en-US')} ل.س`);
+    total += item.price * qty;
+  });
+  lines.push('');
+  lines.push(`*المجموع: ${total.toLocaleString('en-US')} ل.س*`);
+  lines.push('');
+  lines.push('*معلومات التوصيل*');
+  lines.push(`الاسم: ${name}`);
+  lines.push(`الهاتف: ${phone}`);
+  lines.push(`العنوان: ${address}`);
+
+  const text = encodeURIComponent(lines.join('\n'));
+  window.open(`https://wa.me/${RESTAURANT_WHATSAPP}?text=${text}`, '_blank');
+}
+
+render();
+</script>
+
+</body>
+</html>
