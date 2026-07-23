@@ -4,8 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>قائمة الطلب - نموذج تجريبي</title>
+
+<!-- تحميل الخطوط بأسرع طريقة ممكنة: preconnect + preload + font-display:swap -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap">
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://wa.me">
+
 <style>
   :root{
     --ink:#1B4B43;
@@ -20,6 +26,10 @@
     --muted:#7A7563;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
+  html{
+    /* يمنع "قفزة" الخط قبل ما يوصل الخط المخصص، بدون ما يوقف عرض الصفحة */
+    font-family:'Tajawal',sans-serif;
+  }
   body{
     background:var(--paper);
     color:var(--text);
@@ -70,6 +80,9 @@
     background:var(--paper);
     z-index:10;
     border-bottom:1px solid var(--line);
+    /* تمرير أنعم على الموبايل بدون كلفة رسم إضافية */
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:thin;
   }
   .cat-btn{
     flex-shrink:0;
@@ -82,7 +95,7 @@
     font-size:14px;
     color:var(--muted);
     cursor:pointer;
-    transition:all .2s;
+    transition:background-color .2s, color .2s, border-color .2s;
   }
   .cat-btn.active{
     background:var(--ink);
@@ -154,6 +167,8 @@
     font-weight:800;
     cursor:pointer;
     display:flex;align-items:center;justify-content:center;
+    /* استجابة لمس فورية بدون تأخير 300ms على الموبايل */
+    touch-action:manipulation;
   }
   .qty-btn:active{transform:scale(0.92);}
   .qty-num{
@@ -241,6 +256,7 @@
     gap:8px;
     cursor:pointer;
     transition:transform .15s;
+    touch-action:manipulation;
   }
   .send-btn:active{transform:scale(0.96);}
   .send-btn:disabled{
@@ -344,24 +360,40 @@ const menuData = {
   ]
 };
 
+// فهرسة العناصر مرة وحدة بدل ما نعمل find() بكل تغيير كمية (أسرع بكتير)
+const itemsById = {};
+Object.values(menuData).flat().forEach(item => itemsById[item.id] = item);
+
 let cart = {};
 
+// كاش لعناصر الـDOM يلي بنحتاجها كتير، بدل ما نعمل getElementById بكل مرة
+const els = {
+  categories: document.getElementById('categories'),
+  menu: document.getElementById('menu'),
+  checkout: document.getElementById('checkout'),
+  cartCount: document.getElementById('cartCount'),
+  cartTotal: document.getElementById('cartTotal'),
+  sendBtn: document.getElementById('sendBtn'),
+  errorMsg: document.getElementById('errorMsg'),
+  custName: document.getElementById('custName'),
+  custPhone: document.getElementById('custPhone'),
+  custAddress: document.getElementById('custAddress'),
+};
+
+const numFmt = new Intl.NumberFormat('en-US');
+
 function render(){
-  const catBar = document.getElementById('categories');
-  const menuEl = document.getElementById('menu');
-  catBar.innerHTML = '';
-  menuEl.innerHTML = '';
+  // نبني كل شي بـ DocumentFragment ومرة وحدة نلزقه بالصفحة
+  // (بدل ما نعمل reflow/repaint بكل appendChild متل قبل)
+  const catFrag = document.createDocumentFragment();
+  const menuFrag = document.createDocumentFragment();
 
   Object.keys(menuData).forEach((cat, i)=>{
     const btn = document.createElement('button');
     btn.className = 'cat-btn' + (i===0?' active':'');
     btn.textContent = cat;
-    btn.onclick = ()=>{
-      document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('sec-'+i).scrollIntoView({behavior:'smooth', block:'start'});
-    };
-    catBar.appendChild(btn);
+    btn.dataset.target = 'sec-'+i;
+    catFrag.appendChild(btn);
   });
 
   Object.entries(menuData).forEach(([cat, items], i)=>{
@@ -369,7 +401,7 @@ function render(){
     title.className = 'section-title';
     title.id = 'sec-'+i;
     title.textContent = cat;
-    menuEl.appendChild(title);
+    menuFrag.appendChild(title);
 
     items.forEach(item=>{
       const div = document.createElement('div');
@@ -378,21 +410,38 @@ function render(){
         <div class="item-info">
           <h3>${item.name}</h3>
           ${item.desc ? `<p>${item.desc}</p>` : ''}
-          <span class="price">${item.price.toLocaleString('en-US')} ل.س</span>
+          <span class="price">${numFmt.format(item.price)} ل.س</span>
         </div>
         <div class="qty-control">
-          <button class="qty-btn" onclick="changeQty(${item.id}, 1)">+</button>
-          <span class="qty-num" id="qty-${item.id}">${cart[item.id]||0}</span>
-          <button class="qty-btn" onclick="changeQty(${item.id}, -1)">−</button>
+          <button class="qty-btn" data-action="minus" data-id="${item.id}">−</button>
+          <span class="qty-num" id="qty-${item.id}">0</span>
+          <button class="qty-btn" data-action="plus" data-id="${item.id}">+</button>
         </div>
       `;
-      menuEl.appendChild(div);
+      menuFrag.appendChild(div);
     });
   });
-}
 
-function allItems(){
-  return Object.values(menuData).flat();
+  els.categories.appendChild(catFrag);
+  els.menu.appendChild(menuFrag);
+
+  // Event delegation: مستمع وحد للفئات، ومستمع وحد للقائمة
+  // بدل ما نعلق onclick على كل زر (أسرع بالتحميل وأخف بالذاكرة)
+  els.categories.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.cat-btn');
+    if(!btn) return;
+    els.categories.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.target).scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  els.menu.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.qty-btn');
+    if(!btn) return;
+    const id = Number(btn.dataset.id);
+    const delta = btn.dataset.action === 'plus' ? 1 : -1;
+    changeQty(id, delta);
+  });
 }
 
 function changeQty(id, delta){
@@ -404,44 +453,41 @@ function changeQty(id, delta){
 }
 
 function updateCart(){
-  const items = allItems();
   let count = 0, total = 0;
-  Object.entries(cart).forEach(([id, qty])=>{
-    const item = items.find(x=>x.id == id);
+  for(const id in cart){
+    const qty = cart[id];
+    const item = itemsById[id];
     count += qty;
     total += item.price * qty;
-  });
-  document.getElementById('cartCount').textContent = count>0 ? `${count} صنف بالسلة` : 'السلة فاضية';
-  document.getElementById('cartTotal').textContent = total.toLocaleString('en-US') + ' ل.س';
-  document.getElementById('sendBtn').disabled = count === 0;
-
-  const checkoutEl = document.getElementById('checkout');
-  if(count > 0){ checkoutEl.classList.add('show'); } else { checkoutEl.classList.remove('show'); }
+  }
+  els.cartCount.textContent = count>0 ? `${count} صنف بالسلة` : 'السلة فاضية';
+  els.cartTotal.textContent = numFmt.format(total) + ' ل.س';
+  els.sendBtn.disabled = count === 0;
+  els.checkout.classList.toggle('show', count > 0);
 }
 
 function sendOrder(){
-  const name = document.getElementById('custName').value.trim();
-  const phone = document.getElementById('custPhone').value.trim();
-  const address = document.getElementById('custAddress').value.trim();
-  const errorEl = document.getElementById('errorMsg');
+  const name = els.custName.value.trim();
+  const phone = els.custPhone.value.trim();
+  const address = els.custAddress.value.trim();
 
   if(!name || !phone || !address){
-    errorEl.style.display = 'block';
-    document.getElementById('checkout').scrollIntoView({behavior:'smooth', block:'center'});
+    els.errorMsg.style.display = 'block';
+    els.checkout.scrollIntoView({behavior:'smooth', block:'center'});
     return;
   }
-  errorEl.style.display = 'none';
+  els.errorMsg.style.display = 'none';
 
-  const items = allItems();
   let lines = ['*طلب جديد* 🧾', ''];
   let total = 0;
-  Object.entries(cart).forEach(([id, qty])=>{
-    const item = items.find(x=>x.id == id);
-    lines.push(`• ${item.name} × ${qty} — ${(item.price*qty).toLocaleString('en-US')} ل.س`);
+  for(const id in cart){
+    const qty = cart[id];
+    const item = itemsById[id];
+    lines.push(`• ${item.name} × ${qty} — ${numFmt.format(item.price*qty)} ل.س`);
     total += item.price * qty;
-  });
+  }
   lines.push('');
-  lines.push(`*المجموع: ${total.toLocaleString('en-US')} ل.س*`);
+  lines.push(`*المجموع: ${numFmt.format(total)} ل.س*`);
   lines.push('');
   lines.push('*معلومات التوصيل*');
   lines.push(`الاسم: ${name}`);
